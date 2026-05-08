@@ -9,6 +9,7 @@ import Grupos from "./pages/Grupos.js";
 import GroupDetail from "./pages/GroupDetail.js";
 import JoinGroup from "./pages/JoinGroup.js";
 import MatchCenter from "./pages/MatchCenter.js";
+import Leaderboard from "./pages/Leaderboard.js";
 
 function AuthInit({ children }: { children: React.ReactNode }) {
   const { setUser, setInitialized } = useAuthStore();
@@ -79,6 +80,7 @@ export default function App() {
           <Route path="/grupos" element={<RequireAuth><Grupos /></RequireAuth>} />
           <Route path="/grupos/:id" element={<RequireAuth><GroupDetail /></RequireAuth>} />
           <Route path="/grupos/:id/partidos" element={<RequireAuth><MatchCenter /></RequireAuth>} />
+          <Route path="/grupos/:id/tabla" element={<RequireAuth><Leaderboard /></RequireAuth>} />
           <Route path="/unirse/:token" element={<JoinGroup />} />
 
           <Route path="*" element={<Navigate to="/" replace />} />

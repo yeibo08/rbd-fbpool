@@ -166,7 +166,13 @@ export default function GroupDetail() {
             to={`/grupos/${id}/partidos`}
             className="flex-1 text-center bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2.5 rounded-lg transition-colors"
           >
-            Ver partidos
+            Partidos
+          </Link>
+          <Link
+            to={`/grupos/${id}/tabla`}
+            className="flex-1 text-center border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium py-2.5 rounded-lg transition-colors"
+          >
+            Tabla
           </Link>
           {isOwner && (
             <button
