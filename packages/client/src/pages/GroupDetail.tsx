@@ -169,7 +169,7 @@ export default function GroupDetail() {
               <div className="space-y-3">
                 {(
                   [
-                    { key: "ptsCorrectResult", label: "Resultado correcto" },
+                    { key: "ptsCorrectResult", label: "Resultado del partido (Ganador o empate)" },
                     { key: "ptsCorrectHome",   label: "Goles local exactos" },
                     { key: "ptsCorrectAway",   label: "Goles visitante exactos" },
                     { key: "ptsCorrectTotal",  label: "Total de goles exacto" },
@@ -218,7 +218,7 @@ export default function GroupDetail() {
             ) : (
               <>
                 <dl className="grid grid-cols-2 gap-2 text-sm">
-                  <dt className="text-gray-500">Resultado correcto</dt>
+                  <dt className="text-gray-500">Resultado del partido (Ganador o empate)</dt>
                   <dd className="text-gray-900 font-medium">{rules.ptsCorrectResult} pts</dd>
                   <dt className="text-gray-500">Goles local exactos</dt>
                   <dd className="text-gray-900 font-medium">{rules.ptsCorrectHome} pts</dd>
