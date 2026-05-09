@@ -25,6 +25,8 @@ export default function GroupDetail() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const qc = useQueryClient();
+  const [editingRules, setEditingRules] = useState(false);
+  const [draftRules, setDraftRules] = useState({ ptsCorrectResult: 1, ptsCorrectHome: 1, ptsCorrectAway: 1, ptsCorrectTotal: 1 });
 
   const { data: group, isLoading } = useQuery({
     queryKey: ["group", id],
@@ -57,6 +59,14 @@ export default function GroupDetail() {
   const deleteGroup = useMutation({
     mutationFn: () => groupsApi.delete(id!),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["groups"] }); navigate("/grupos"); },
+  });
+
+  const saveRules = useMutation({
+    mutationFn: () => groupsApi.updateRules(id!, draftRules),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["group-rules", id] });
+      setEditingRules(false);
+    },
   });
 
   if (isLoading) return <div className="min-h-screen flex items-center justify-center text-gray-400 text-sm">Cargando…</div>;
@@ -143,20 +153,85 @@ export default function GroupDetail() {
         {/* Scoring rules */}
         {rules && (
           <section className="bg-white rounded-xl border border-gray-200 p-4">
-            <h3 className="font-semibold text-gray-800 mb-3">Reglas de puntuación</h3>
-            <dl className="grid grid-cols-2 gap-2 text-sm">
-              <dt className="text-gray-500">Resultado correcto</dt>
-              <dd className="text-gray-900 font-medium">{rules.ptsCorrectResult} pts</dd>
-              <dt className="text-gray-500">Goles local exactos</dt>
-              <dd className="text-gray-900 font-medium">{rules.ptsCorrectHome} pts</dd>
-              <dt className="text-gray-500">Goles visitante exactos</dt>
-              <dd className="text-gray-900 font-medium">{rules.ptsCorrectAway} pts</dd>
-              <dt className="text-gray-500">Total de goles exacto</dt>
-              <dd className="text-gray-900 font-medium">{rules.ptsCorrectTotal} pts</dd>
-            </dl>
-            <p className="text-xs text-gray-400 mt-3">
-              Puntos máximos por partido: {rules.ptsCorrectResult + rules.ptsCorrectHome + rules.ptsCorrectAway + rules.ptsCorrectTotal}
-            </p>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-gray-800">Reglas de puntuación</h3>
+              {canManage && !editingRules && (
+                <button
+                  onClick={() => { setDraftRules({ ptsCorrectResult: rules.ptsCorrectResult, ptsCorrectHome: rules.ptsCorrectHome, ptsCorrectAway: rules.ptsCorrectAway, ptsCorrectTotal: rules.ptsCorrectTotal }); setEditingRules(true); }}
+                  className="text-xs text-blue-600 hover:underline"
+                >
+                  Editar
+                </button>
+              )}
+            </div>
+
+            {editingRules ? (
+              <div className="space-y-3">
+                {(
+                  [
+                    { key: "ptsCorrectResult", label: "Resultado correcto" },
+                    { key: "ptsCorrectHome",   label: "Goles local exactos" },
+                    { key: "ptsCorrectAway",   label: "Goles visitante exactos" },
+                    { key: "ptsCorrectTotal",  label: "Total de goles exacto" },
+                  ] as const
+                ).map(({ key, label }) => (
+                  <div key={key} className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">{label}</span>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min={0}
+                        max={99}
+                        value={draftRules[key]}
+                        onChange={(e) => setDraftRules((prev) => ({ ...prev, [key]: Math.max(0, Number(e.target.value)) }))}
+                        className="w-14 text-center border border-gray-300 rounded-lg py-1 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <span className="text-xs text-gray-400 w-5">pts</span>
+                    </div>
+                  </div>
+                ))}
+
+                <p className="text-xs text-gray-400 pt-1">
+                  Máximo por partido: {Object.values(draftRules).reduce((a, b) => a + b, 0)} pts
+                </p>
+
+                {saveRules.error && (
+                  <p className="text-red-500 text-xs">{(saveRules.error as Error).message}</p>
+                )}
+
+                <div className="flex gap-2 pt-1">
+                  <button
+                    onClick={() => saveRules.mutate()}
+                    disabled={saveRules.isPending}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium py-2 rounded-lg transition-colors"
+                  >
+                    {saveRules.isPending ? "Guardando…" : "Guardar"}
+                  </button>
+                  <button
+                    onClick={() => setEditingRules(false)}
+                    className="flex-1 border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium py-2 rounded-lg transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <dl className="grid grid-cols-2 gap-2 text-sm">
+                  <dt className="text-gray-500">Resultado correcto</dt>
+                  <dd className="text-gray-900 font-medium">{rules.ptsCorrectResult} pts</dd>
+                  <dt className="text-gray-500">Goles local exactos</dt>
+                  <dd className="text-gray-900 font-medium">{rules.ptsCorrectHome} pts</dd>
+                  <dt className="text-gray-500">Goles visitante exactos</dt>
+                  <dd className="text-gray-900 font-medium">{rules.ptsCorrectAway} pts</dd>
+                  <dt className="text-gray-500">Total de goles exacto</dt>
+                  <dd className="text-gray-900 font-medium">{rules.ptsCorrectTotal} pts</dd>
+                </dl>
+                <p className="text-xs text-gray-400 mt-3">
+                  Máximo por partido: {rules.ptsCorrectResult + rules.ptsCorrectHome + rules.ptsCorrectAway + rules.ptsCorrectTotal} pts
+                </p>
+              </>
+            )}
           </section>
         )}
 

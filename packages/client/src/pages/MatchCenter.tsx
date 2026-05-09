@@ -4,6 +4,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { matchesApi, type Match } from "../api/matches.js";
 import { predictionsApi, type Prediction, type PredictionResult } from "../api/predictions.js";
 
+const IS_DEV = import.meta.env.DEV;
+
 // ── helpers ───────────────────────────────────────────────────────────────
 
 function isOpen(match: Match) {
@@ -107,6 +109,91 @@ function ScoreInput({
   );
 }
 
+// ── DevSetResult ──────────────────────────────────────────────────────────
+
+function DevSetResult({ match }: { match: Match }) {
+  const qc = useQueryClient();
+  const [home, setHome] = useState("");
+  const [away, setAway] = useState("");
+  const [open, setOpen] = useState(false);
+
+  const set = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/admin/matches/${match.id}/result`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ homeGoals: Number(home), awayGoals: Number(away) }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["matches"] });
+      qc.invalidateQueries({ queryKey: ["results"] });
+      setOpen(false);
+    },
+  });
+
+  const clear = useMutation({
+    mutationFn: async () => {
+      await fetch(`/api/admin/matches/${match.id}/result`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["matches"] });
+      qc.invalidateQueries({ queryKey: ["results"] });
+    },
+  });
+
+  if (!open) {
+    return (
+      <div className="flex gap-1 mt-2 justify-end">
+        <button
+          onClick={() => setOpen(true)}
+          className="text-xs text-orange-500 border border-orange-200 hover:bg-orange-50 px-2 py-1 rounded transition-colors"
+        >
+          [dev] fijar resultado
+        </button>
+        {hasResult(match) && (
+          <button
+            onClick={() => clear.mutate()}
+            className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1 rounded transition-colors"
+          >
+            limpiar
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-2 flex items-center gap-2 p-2 bg-orange-50 border border-orange-200 rounded-lg">
+      <span className="text-xs text-orange-600 font-medium">dev</span>
+      <input
+        type="number" min={0} max={99} value={home} onChange={(e) => setHome(e.target.value)}
+        placeholder="L" className="w-10 text-center border border-orange-300 rounded px-1 py-1 text-sm"
+      />
+      <span className="text-gray-400 text-xs">–</span>
+      <input
+        type="number" min={0} max={99} value={away} onChange={(e) => setAway(e.target.value)}
+        placeholder="V" className="w-10 text-center border border-orange-300 rounded px-1 py-1 text-sm"
+      />
+      <button
+        onClick={() => set.mutate()}
+        disabled={home === "" || away === "" || set.isPending}
+        className="text-xs bg-orange-500 hover:bg-orange-600 disabled:opacity-40 text-white px-2 py-1 rounded transition-colors"
+      >
+        {set.isPending ? "…" : "OK"}
+      </button>
+      <button onClick={() => setOpen(false)} className="text-xs text-gray-400 hover:text-gray-600">
+        ✕
+      </button>
+    </div>
+  );
+}
+
 // ── MatchCard ─────────────────────────────────────────────────────────────
 
 function MatchCard({
@@ -184,6 +271,8 @@ function MatchCard({
           <p className="text-sm font-medium text-gray-900 truncate">{match.awayTeamLabel}</p>
         </div>
       </div>
+
+      {IS_DEV && <DevSetResult match={match} />}
     </div>
   );
 }
