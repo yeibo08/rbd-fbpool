@@ -70,7 +70,9 @@ packages/
 │   └── test-utils/      # in-memory test DB + helpers
 └── client/src/
     ├── api/             # TanStack Query fetch wrappers (uses shared lib/api.ts)
-    ├── pages/           # Login, Register, Grupos, GroupDetail, MatchCenter, Leaderboard, JoinGroup
+    ├── components/
+    │   └── layout/      # AppNav — shared nav bar with hamburger drawer
+    ├── pages/           # Login, Register, Grupos, GroupDetail, MatchCenter, Leaderboard, JoinGroup, Faq
     ├── store/           # Zustand auth store
     └── lib/             # apiFetch, utils
 ```
@@ -115,9 +117,11 @@ All routes require authentication (JWT cookie) except `/api/auth/register` and `
 | `GET` | `/api/auth/me` | Current user |
 | `POST` | `/api/auth/forgot-password` | Generate temp password |
 | `POST` | `/api/auth/change-password` | Change password |
+| `PATCH` | `/api/auth/me` | Update display name |
 | `GET` | `/api/groups` | List user's groups |
 | `POST` | `/api/groups` | Create group |
 | `GET` | `/api/groups/:id` | Group detail + members |
+| `PATCH` | `/api/groups/:id` | Rename group (owner or manager) |
 | `DELETE` | `/api/groups/:id` | Delete group (owner only) |
 | `POST` | `/api/groups/join/:token` | Join via invite link |
 | `POST` | `/api/groups/:id/invite/reset` | Regenerate invite token |
@@ -174,6 +178,44 @@ FOOTBALL_DATA_API_KEY=your_key_here
 5. All UI text must be in Spanish
 6. Open a pull request — describe what changed and why
 
-## Cloud migration
+## Deployment (Fly.io)
 
-The app uses `better-sqlite3` locally. To deploy to a cloud runtime, swap the DB client in `packages/server/src/db/client.ts` to `@libsql/client` (Turso). Drizzle supports both via the same schema and query API — no other files need to change.
+The repo ships with a `Dockerfile`, `fly.toml`, and `.github/workflows/deploy.yml` for continuous deployment to [Fly.io](https://fly.io).
+
+### First-time setup
+
+```bash
+# Install flyctl
+brew install flyctl
+
+# Create the app (accepts fly.toml as-is)
+fly auth login
+fly launch --no-deploy
+
+# Persistent volume for SQLite (1 GB, free tier)
+fly volumes create rbd_data --region dfw --size 1
+
+# Set required secret
+fly secrets set JWT_SECRET="$(openssl rand -base64 48)"
+
+# Deploy and seed
+fly deploy
+fly ssh console -C "node packages/server/dist/db/seed.js"
+```
+
+### CI/CD
+
+Every push to `main` triggers an automatic deploy via GitHub Actions.  
+Add `FLY_API_TOKEN` (output of `fly tokens create deploy`) to your repo's GitHub Secrets.
+
+### Scale to zero
+
+The app is configured with `min_machines_running = 0` — it sleeps when idle and wakes on the first request (~2 s cold start). No charges while idle within the free tier.
+
+### Environment variables in production
+
+Set `DATABASE_PATH` and `NODE_ENV` are pre-configured in `fly.toml`. `JWT_SECRET` must be set via `fly secrets set`.
+
+## Cloud migration (alternative)
+
+The app uses `better-sqlite3` locally. To deploy to a different runtime, swap the DB client in `packages/server/src/db/client.ts` to `@libsql/client` (Turso). Drizzle supports both via the same schema and query API — no other files need to change.

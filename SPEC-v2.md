@@ -64,7 +64,8 @@ Passwords are stored hashed (bcrypt, 10 rounds). Authentication uses a JWT store
 ### User profile
 
 Each user can:
-- Edit their display name
+
+- Edit their display name — via the hamburger menu drawer (`PATCH /api/auth/me`); re-issues a fresh JWT so the cookie reflects the new name immediately
 - Change their password (requires the current password)
 - View all groups they belong to
 - Generate a QR code encoding their profile URL, which a group admin can scan to add them directly to a group
@@ -78,6 +79,8 @@ A user can create a group (becoming its owner) or join one via invite link or QR
 **Invite link** — each group has a unique token-based invite URL. The owner or any manager can regenerate the token, invalidating the old link. A logged-out user who opens an invite link is redirected to login and returned to the invite link afterward to complete the join.
 
 **Member limit** — a group accepts at most 20 members. Attempts to join a full group are rejected with a clear error.
+
+**Rename group** (owner or manager) — the group name can be changed at any time via `PATCH /api/groups/:id`. The new name is validated (1–60 characters). The change is reflected immediately in all views.
 
 **Member management** (owner only) — promote a member to manager or demote a manager back to member. Remove any non-owner member.
 
@@ -152,6 +155,40 @@ The groups list page shows a per-group progress counter below each group name: "
 
 ---
 
+### Navigation
+
+All authenticated pages share a common `AppNav` component that replaces per-page navbars. It provides:
+
+- **Left side** — breadcrumb trail indicating the current position in the page hierarchy:
+  - Grupos: app title only
+  - GroupDetail: ← Grupos / [group name]
+  - MatchCenter: ← Grupo / Partidos
+  - Leaderboard: ← Grupo / Tabla de posiciones
+- **Right side** — a hamburger icon (☰) that opens a slide-out drawer containing:
+  - The user's display name with an inline edit field (triggers `PATCH /api/auth/me`)
+  - Links to Mis grupos and Ayuda/FAQ
+  - Logout button
+
+The drawer overlays the page with a dark backdrop and is dismissed by tapping outside it or the close button.
+
+---
+
+### FAQ
+
+A public page at `/faq` (no login required) with accordion-style Q&A covering:
+
+1. How the pool works
+2. How points are calculated
+3. When predictions close
+4. Whether predictions can be changed
+5. Penalty shootout rules
+6. How to invite friends
+7. Group limits
+
+The page is linked from the hamburger drawer (authenticated users) and as a footer link on the Login and Register pages.
+
+---
+
 ## Non-functional requirements
 
 - All UI text in Spanish
@@ -161,3 +198,6 @@ The groups list page shows a per-group progress counter below each group name: "
 - The admin routes (`PUT/DELETE /api/admin/matches/:id/result`) that allow manually setting results are only mounted outside of `NODE_ENV=production`
 - Cascade deletes enforced at the database schema level (`ON DELETE CASCADE`)
 - Shared authentication utility (`requireMember`) prevents access to any group resource by non-members at the route handler level
+- Deployed to Fly.io via Docker; SQLite persisted on a named volume at `/data/pool.db`; app scales to zero when idle (`min_machines_running = 0`) and wakes on first request
+- CI/CD via GitHub Actions: every push to `main` triggers `flyctl deploy --remote-only`
+- In production the Hono server serves the compiled Vite client as static files and handles SPA routing with an `index.html` fallback; no separate static host needed

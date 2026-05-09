@@ -14,6 +14,8 @@ Node.js (inferred from `.gitignore`). Package manager, framework, and tooling ar
 
 Add build, test, and lint commands here once `package.json` is created.
 Always use TDD for any implementation
+Don't push or commit changes to Git unless explicit request
+After any major release, update the readme and the SPEC-v2.md
 
 ## Plan mode
 
