@@ -38,7 +38,7 @@ export function createAdminRoutes(db: DrizzleDB) {
       return c.json({ ok: true, id, homeGoals, awayGoals });
     })
 
-    .delete("/:id/result", requireAuth, (c) => {
+    .delete("/:id/result", (c) => {
       const { id } = c.req.param();
 
       db.update(matches)

@@ -1,4 +1,4 @@
-import { eq, isNull, lt } from "drizzle-orm";
+import { and, eq, isNull, lt } from "drizzle-orm";
 import type { DrizzleDB } from "../db/types.js";
 import { matches } from "../db/schema.js";
 
@@ -28,9 +28,8 @@ export class ResultsSyncService {
     const pending = this.db
       .select()
       .from(matches)
-      .where(lt(matches.kickoffAt, cutoff))
-      .all()
-      .filter((m) => m.homeGoals === null);
+      .where(and(lt(matches.kickoffAt, cutoff), isNull(matches.homeGoals)))
+      .all();
 
     for (const match of pending) {
       try {

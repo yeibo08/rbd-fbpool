@@ -2,7 +2,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { authApi } from "../api/auth.js";
 import { useAuthStore } from "../store/auth.js";
 
@@ -15,6 +15,8 @@ type FormData = z.infer<typeof schema>;
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = (location.state as { from?: { pathname: string } } | null)?.from?.pathname ?? "/grupos";
   const setUser = useAuthStore((s) => s.setUser);
 
   const {
@@ -27,7 +29,7 @@ export default function Login() {
     mutationFn: authApi.login,
     onSuccess: (user) => {
       setUser(user);
-      navigate(user.forcePasswordChange ? "/cambiar-contrasena" : "/grupos");
+      navigate(user.forcePasswordChange ? "/cambiar-contrasena" : from, { replace: true });
     },
   });
 
