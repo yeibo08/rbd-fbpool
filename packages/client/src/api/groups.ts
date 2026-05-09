@@ -59,4 +59,7 @@ export const groupsApi = {
 
   removeMember: (groupId: string, userId: string) =>
     apiFetch<{ ok: boolean }>(`/api/groups/${groupId}/members/${userId}`, { method: "DELETE" }),
+
+  rename: (id: string, name: string) =>
+    apiFetch<Group>(`/api/groups/${id}`, { method: "PATCH", body: JSON.stringify({ name }) }),
 };

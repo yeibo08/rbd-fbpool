@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { authApi } from "../api/auth.js";
 import { groupsApi } from "../api/groups.js";
 import { predictionsApi } from "../api/predictions.js";
-import { useAuthStore } from "../store/auth.js";
+import AppNav from "../components/layout/AppNav.js";
 
 function GroupProgressBadge({ groupId }: { groupId: string }) {
   const { data } = useQuery({
@@ -20,7 +19,6 @@ function GroupProgressBadge({ groupId }: { groupId: string }) {
 
 export default function Grupos() {
   const navigate = useNavigate();
-  const { user, setUser } = useAuthStore();
   const qc = useQueryClient();
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
@@ -28,11 +26,6 @@ export default function Grupos() {
   const { data: groups = [], isLoading } = useQuery({
     queryKey: ["groups"],
     queryFn: groupsApi.list,
-  });
-
-  const logout = useMutation({
-    mutationFn: authApi.logout,
-    onSuccess: () => { setUser(null); navigate("/iniciar-sesion"); },
   });
 
   const createGroup = useMutation({
@@ -47,15 +40,7 @@ export default function Grupos() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-        <span className="font-bold text-gray-900">Quiniela Mundial 2026</span>
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-600">{user?.displayName}</span>
-          <button onClick={() => logout.mutate()} className="text-sm text-gray-500 hover:text-gray-700">
-            Salir
-          </button>
-        </div>
-      </nav>
+      <AppNav />
 
       <main className="max-w-2xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">

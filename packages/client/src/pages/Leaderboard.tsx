@@ -1,7 +1,8 @@
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { leaderboardApi } from "../api/leaderboard.js";
 import { useAuthStore } from "../store/auth.js";
+import AppNav from "../components/layout/AppNav.js";
 
 const MEDAL: Record<number, string> = { 1: "🥇", 2: "🥈", 3: "🥉" };
 
@@ -18,13 +19,10 @@ export default function Leaderboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3">
-        <Link to={`/grupos/${groupId}`} className="text-gray-500 hover:text-gray-700 text-sm">
-          ← Grupo
-        </Link>
-        <span className="text-gray-300">/</span>
-        <span className="font-medium text-gray-900 text-sm">Tabla de posiciones</span>
-      </nav>
+      <AppNav breadcrumbs={[
+        { label: "Grupo", href: `/grupos/${groupId}` },
+        { label: "Tabla de posiciones" },
+      ]} />
 
       <main className="max-w-2xl mx-auto px-4 py-8">
         {isLoading ? (

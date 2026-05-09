@@ -30,4 +30,10 @@ export const authApi = {
       method: "POST",
       body: JSON.stringify(data),
     }),
+
+  updateProfile: (displayName: string) =>
+    apiFetch<AuthUser>("/api/auth/me", {
+      method: "PATCH",
+      body: JSON.stringify({ displayName }),
+    }),
 };

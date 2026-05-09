@@ -3,6 +3,7 @@ import { Link, useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { groupsApi, type Member } from "../api/groups.js";
 import { useAuthStore } from "../store/auth.js";
+import AppNav from "../components/layout/AppNav.js";
 
 function roleLabel(role: string) {
   return role === "owner" ? "Propietario" : role === "manager" ? "Gestor" : "Miembro";
@@ -27,6 +28,8 @@ export default function GroupDetail() {
   const qc = useQueryClient();
   const [editingRules, setEditingRules] = useState(false);
   const [draftRules, setDraftRules] = useState({ ptsCorrectResult: 1, ptsCorrectHome: 1, ptsCorrectAway: 1, ptsCorrectTotal: 1 });
+  const [renamingGroup, setRenamingGroup] = useState(false);
+  const [newGroupName, setNewGroupName] = useState("");
 
   const { data: group, isLoading } = useQuery({
     queryKey: ["group", id],
@@ -69,6 +72,15 @@ export default function GroupDetail() {
     },
   });
 
+  const renameGroup = useMutation({
+    mutationFn: (name: string) => groupsApi.rename(id!, name),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["group", id] });
+      qc.invalidateQueries({ queryKey: ["groups"] });
+      setRenamingGroup(false);
+    },
+  });
+
   if (isLoading) return <div className="min-h-screen flex items-center justify-center text-gray-400 text-sm">Cargando…</div>;
   if (!group) return <div className="min-h-screen flex items-center justify-center text-gray-400 text-sm">Grupo no encontrado</div>;
 
@@ -80,13 +92,56 @@ export default function GroupDetail() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3">
-        <Link to="/grupos" className="text-gray-500 hover:text-gray-700 text-sm">← Grupos</Link>
-        <span className="text-gray-300">/</span>
-        <span className="font-medium text-gray-900 text-sm">{group.name}</span>
-      </nav>
+      <AppNav breadcrumbs={[
+        { label: "Grupos", href: "/grupos" },
+        { label: group.name },
+      ]} />
 
       <main className="max-w-2xl mx-auto px-4 py-8 space-y-6">
+
+        {/* Group name with rename */}
+        <div className="flex items-center gap-2">
+          {renamingGroup ? (
+            <form
+              className="flex items-center gap-2 flex-1"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (newGroupName.trim()) renameGroup.mutate(newGroupName.trim());
+              }}
+            >
+              <input
+                autoFocus
+                value={newGroupName}
+                onChange={(e) => setNewGroupName(e.target.value)}
+                onKeyDown={(e) => e.key === "Escape" && setRenamingGroup(false)}
+                maxLength={60}
+                className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                type="submit"
+                disabled={!newGroupName.trim() || renameGroup.isPending}
+                className="text-xs bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-3 py-1.5 rounded-lg"
+              >
+                {renameGroup.isPending ? "…" : "Guardar"}
+              </button>
+              <button type="button" onClick={() => setRenamingGroup(false)} className="text-xs text-gray-400 hover:text-gray-600">
+                Cancelar
+              </button>
+            </form>
+          ) : (
+            <>
+              <h2 className="text-lg font-bold text-gray-900">{group.name}</h2>
+              {canManage && (
+                <button
+                  onClick={() => { setNewGroupName(group.name); setRenamingGroup(true); }}
+                  className="text-xs text-blue-600 hover:text-blue-700 px-2 py-1 rounded hover:bg-blue-50"
+                >
+                  ✏ Renombrar
+                </button>
+              )}
+            </>
+          )}
+        </div>
 
         {/* Invite link */}
         <section className="bg-white rounded-xl border border-gray-200 p-4">

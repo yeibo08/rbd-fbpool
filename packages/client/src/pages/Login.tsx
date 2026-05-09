@@ -100,6 +100,9 @@ export default function Login() {
             Regístrate
           </Link>
         </p>
+        <p className="text-center text-xs text-gray-400 mt-3">
+          <Link to="/faq" className="hover:underline">¿Cómo funciona la quiniela?</Link>
+        </p>
       </div>
     </div>
   );

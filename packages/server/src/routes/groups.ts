@@ -19,6 +19,10 @@ const updateRulesSchema = z.object({
   ptsCorrectTotal: z.number().int().min(0),
 });
 
+const renameGroupSchema = z.object({
+  name: z.string().min(1).max(60),
+});
+
 const updateRoleSchema = z.object({
   role: z.enum(["manager", "member"]),
 });
@@ -119,6 +123,24 @@ export function createGroupRoutes(db: DrizzleDB) {
       const members = listGroupMembers(db, id);
 
       return c.json({ ...group, members });
+    })
+
+    .patch("/:id", zValidator("json", renameGroupSchema), (c) => {
+      const userId = c.get("userId");
+      const { id } = c.req.param();
+      const { name } = c.req.valid("json");
+
+      const group = getGroup(db, id);
+      if (!group) return c.json({ error: "Grupo no encontrado" }, 404);
+
+      const member = requireMember(db, id, userId);
+      if (!member || (member.role !== "owner" && member.role !== "manager")) {
+        return c.json({ error: "Solo propietarios y gestores pueden renombrar el grupo" }, 403);
+      }
+
+      db.update(groups).set({ name }).where(eq(groups.id, id)).run();
+
+      return c.json({ ...group, name });
     })
 
     .delete("/:id", (c) => {

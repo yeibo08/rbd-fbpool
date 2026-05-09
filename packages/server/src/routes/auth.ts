@@ -43,6 +43,10 @@ const forgotPasswordSchema = z.object({
   email: z.string().email(),
 });
 
+const updateProfileSchema = z.object({
+  displayName: z.string().min(1).max(50),
+});
+
 function findUserByEmail(db: DrizzleDB, email: string) {
   return db.select().from(users).where(eq(users.email, email)).get();
 }
@@ -142,5 +146,25 @@ export function createAuthRoutes(db: DrizzleDB) {
         .run();
 
       return c.json({ ok: true });
+    })
+
+    .patch("/me", requireAuth, zValidator("json", updateProfileSchema), async (c) => {
+      const userId = c.get("userId");
+      const { displayName } = c.req.valid("json");
+
+      const user = findUserById(db, userId);
+      if (!user) return c.json({ error: "Usuario no encontrado" }, 404);
+
+      db.update(users).set({ displayName }).where(eq(users.id, userId)).run();
+
+      const token = await signToken({ sub: userId, email: user.email });
+      setCookie(c, "token", token, COOKIE_OPTS);
+
+      return c.json({
+        id: userId,
+        email: user.email,
+        displayName,
+        forcePasswordChange: user.forcePasswordChange === 1,
+      });
     });
 }
