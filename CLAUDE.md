@@ -13,3 +13,8 @@ Node.js (inferred from `.gitignore`). Package manager, framework, and tooling ar
 ## Commands
 
 Add build, test, and lint commands here once `package.json` is created.
+Always use TDD for any implementation
+
+## Plan mode
+
+Always create test and regresion testing when implementing any step of the plan
