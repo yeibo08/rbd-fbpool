@@ -1,8 +1,17 @@
 import { serve } from "@hono/node-server";
 import cron from "node-cron";
+import { migrate } from "drizzle-orm/better-sqlite3/migrator";
+import path from "path";
+import { fileURLToPath } from "url";
 import { createApp } from "./app.js";
 import { db } from "./db/client.js";
 import { createESPNSyncService } from "./services/espn-provider.js";
+
+if (process.env.NODE_ENV === "production") {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  migrate(db, { migrationsFolder: path.join(__dirname, "db/migrations") });
+  console.log("Migrations applied");
+}
 
 const app = createApp(db);
 const port = Number(process.env.PORT ?? 3000);

@@ -1,4 +1,6 @@
 import { Hono } from "hono";
+import { serveStatic } from "@hono/node-server/serve-static";
+import { readFileSync } from "fs";
 import { createAuthRoutes } from "./routes/auth.js";
 import { createGroupRoutes } from "./routes/groups.js";
 import { createMatchRoutes } from "./routes/matches.js";
@@ -18,6 +20,13 @@ export function createApp(db: DrizzleDB) {
 
   if (process.env.NODE_ENV !== "production") {
     app.route("/api/admin/matches", createAdminRoutes(db));
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    app.use("/*", serveStatic({ root: "./packages/client/dist" }));
+    app.get("/*", (c) =>
+      c.html(readFileSync("./packages/client/dist/index.html", "utf-8"))
+    );
   }
 
   return app;

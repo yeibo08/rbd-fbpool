@@ -1,0 +1,35 @@
+# fly.toml app configuration file generated for rbd-fbpool on 2026-05-08T21:17:22-06:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'rbd-fbpool'
+primary_region = 'dfw'
+
+[build]
+
+[env]
+  DATABASE_PATH = '/data/pool.db'
+  NODE_ENV = 'production'
+  PORT = '3000'
+
+[[mounts]]
+  source = 'rbd_data'
+  destination = '/data'
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [http_service.concurrency]
+    type = 'requests'
+    hard_limit = 250
+    soft_limit = 200
+
+[[vm]]
+  memory = '256mb'
+  cpus = 1
+  memory_mb = 256
