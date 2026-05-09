@@ -579,3 +579,117 @@ describe("PUT /api/groups/:id/rules", () => {
     expect(res.status).toBe(403);
   });
 });
+
+// ── PATCH /api/groups/:id (rename) ───────────────────────────────────────
+
+async function createGroup(app: ReturnType<typeof makeApp>["app"], session: import("../test-utils/helpers.js").AuthSession, name = "Original Name") {
+  const res = await authedRequest(app, "/api/groups", {
+    session,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name }),
+  });
+  return res.json() as Promise<{ id: string; name: string }>;
+}
+
+describe("PATCH /api/groups/:id", () => {
+  it("owner can rename the group and response reflects new name", async () => {
+    const { app } = makeApp();
+    const owner = await registerUser(app);
+    const { id } = await createGroup(app, owner);
+
+    const res = await authedRequest(app, `/api/groups/${id}`, {
+      session: owner,
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Nuevo Nombre" }),
+    });
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.name).toBe("Nuevo Nombre");
+  });
+
+  it("manager can rename the group", async () => {
+    const { app } = makeApp();
+    const owner = await registerUser(app, { email: "owner@test.com" });
+    const manager = await registerUser(app, { email: "manager@test.com" });
+    const { id, inviteToken } = await createGroup(app, owner) as { id: string; inviteToken: string; name: string };
+
+    await authedRequest(app, `/api/groups/join/${inviteToken}`, { session: manager, method: "POST" });
+    await authedRequest(app, `/api/groups/${id}/members/${manager.userId}`, {
+      session: owner,
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role: "manager" }),
+    });
+
+    const res = await authedRequest(app, `/api/groups/${id}`, {
+      session: manager,
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Renombrado por Gestor" }),
+    });
+
+    expect(res.status).toBe(200);
+    expect((await res.json()).name).toBe("Renombrado por Gestor");
+  });
+
+  it("member cannot rename the group (403)", async () => {
+    const { app } = makeApp();
+    const owner = await registerUser(app, { email: "owner@test.com" });
+    const member = await registerUser(app, { email: "member@test.com" });
+    const { id, inviteToken } = await createGroup(app, owner) as { id: string; inviteToken: string; name: string };
+
+    await authedRequest(app, `/api/groups/join/${inviteToken}`, { session: member, method: "POST" });
+
+    const res = await authedRequest(app, `/api/groups/${id}`, {
+      session: member,
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Intento Fallido" }),
+    });
+
+    expect(res.status).toBe(403);
+  });
+
+  it("returns 404 for unknown group id", async () => {
+    const { app } = makeApp();
+    const user = await registerUser(app);
+
+    const res = await authedRequest(app, "/api/groups/nonexistent", {
+      session: user,
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Ghost Group" }),
+    });
+
+    expect(res.status).toBe(404);
+  });
+
+  it("returns 401 when not authenticated", async () => {
+    const { app } = makeApp();
+    const res = await app.request("/api/groups/any-id", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "No Auth" }),
+    });
+    expect(res.status).toBe(401);
+  });
+
+  it("persists the new name — GET after rename returns updated name", async () => {
+    const { app } = makeApp();
+    const owner = await registerUser(app);
+    const { id } = await createGroup(app, owner);
+
+    await authedRequest(app, `/api/groups/${id}`, {
+      session: owner,
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Nombre Persistido" }),
+    });
+
+    const getRes = await authedRequest(app, `/api/groups/${id}`, { session: owner });
+    expect((await getRes.json()).name).toBe("Nombre Persistido");
+  });
+});

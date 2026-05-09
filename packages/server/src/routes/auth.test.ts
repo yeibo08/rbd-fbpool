@@ -300,3 +300,85 @@ describe("POST /api/auth/change-password", () => {
     expect(me.forcePasswordChange).toBe(false);
   });
 });
+
+// ── PATCH /api/auth/me ────────────────────────────────────────────────────
+
+describe("PATCH /api/auth/me", () => {
+  it("updates the display name and returns updated user", async () => {
+    const { app } = makeApp();
+    const regRes = await registerAndLogin(app);
+    const cookie = regRes.headers.get("set-cookie")!.split(";")[0];
+
+    const res = await app.request("/api/auth/me", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ displayName: "Nuevo Nombre" }),
+    });
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.displayName).toBe("Nuevo Nombre");
+    expect(body.email).toBe(VALID_USER.email);
+  });
+
+  it("GET /me after update reflects the new display name", async () => {
+    const { app } = makeApp();
+    const regRes = await registerAndLogin(app);
+    const cookie = regRes.headers.get("set-cookie")!.split(";")[0];
+
+    await app.request("/api/auth/me", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ displayName: "Nombre Actualizado" }),
+    });
+
+    const patchRes = await app.request("/api/auth/me", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ displayName: "Nombre Actualizado" }),
+    });
+    const newCookie = patchRes.headers.get("set-cookie")!.split(";")[0];
+
+    const meRes = await app.request("/api/auth/me", { headers: { Cookie: newCookie } });
+    expect((await meRes.json()).displayName).toBe("Nombre Actualizado");
+  });
+
+  it("issues a fresh JWT cookie on success", async () => {
+    const { app } = makeApp();
+    const regRes = await registerAndLogin(app);
+    const cookie = regRes.headers.get("set-cookie")!.split(";")[0];
+
+    const res = await app.request("/api/auth/me", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ displayName: "New Name" }),
+    });
+
+    expect(res.headers.get("set-cookie")).toContain("token=");
+    expect(res.headers.get("set-cookie")).toContain("HttpOnly");
+  });
+
+  it("returns 400 for an empty display name", async () => {
+    const { app } = makeApp();
+    const regRes = await registerAndLogin(app);
+    const cookie = regRes.headers.get("set-cookie")!.split(";")[0];
+
+    const res = await app.request("/api/auth/me", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ displayName: "" }),
+    });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 401 when not authenticated", async () => {
+    const { app } = makeApp();
+    const res = await app.request("/api/auth/me", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ displayName: "Ghost" }),
+    });
+    expect(res.status).toBe(401);
+  });
+});
