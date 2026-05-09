@@ -3,7 +3,20 @@ import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { authApi } from "../api/auth.js";
 import { groupsApi } from "../api/groups.js";
+import { predictionsApi } from "../api/predictions.js";
 import { useAuthStore } from "../store/auth.js";
+
+function GroupProgressBadge({ groupId }: { groupId: string }) {
+  const { data } = useQuery({
+    queryKey: ["predictions-progress", groupId],
+    queryFn: () => predictionsApi.progress(groupId),
+    staleTime: 60 * 1000,
+  });
+  if (!data) return null;
+  return (
+    <span className="text-xs text-gray-400">{data.predicted} / {data.total} pronosticados</span>
+  );
+}
 
 export default function Grupos() {
   const navigate = useNavigate();
@@ -98,6 +111,7 @@ export default function Grupos() {
               <li key={g.id} className="bg-white rounded-xl border border-gray-200 p-4 flex items-center justify-between">
                 <div>
                   <p className="font-medium text-gray-900">{g.name}</p>
+                  <GroupProgressBadge groupId={g.id} />
                 </div>
                 <div className="flex gap-2">
                   <Link

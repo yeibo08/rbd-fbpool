@@ -6,6 +6,7 @@ import { nanoid } from "nanoid";
 import type { DrizzleDB } from "../db/types.js";
 import { groups, groupMembers, scoringRules, users } from "../db/schema.js";
 import { requireAuth, type AuthEnv } from "../middleware/auth.js";
+import { requireMember } from "../db/helpers.js";
 
 const createGroupSchema = z.object({
   name: z.string().min(1).max(100),
@@ -26,13 +27,6 @@ function getGroup(db: DrizzleDB, groupId: string) {
   return db.select().from(groups).where(eq(groups.id, groupId)).get();
 }
 
-function getMember(db: DrizzleDB, groupId: string, userId: string) {
-  return db
-    .select()
-    .from(groupMembers)
-    .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.userId, userId)))
-    .get();
-}
 
 function listGroupMembers(db: DrizzleDB, groupId: string) {
   return db
@@ -97,7 +91,7 @@ export function createGroupRoutes(db: DrizzleDB) {
       const group = db.select().from(groups).where(eq(groups.inviteToken, token)).get();
       if (!group) return c.json({ error: "Token inválido" }, 404);
 
-      const existing = getMember(db, group.id, userId);
+      const existing = requireMember(db, group.id, userId);
       if (existing) return c.json({ error: "Ya eres miembro de este grupo" }, 409);
 
       const row = db
@@ -119,7 +113,7 @@ export function createGroupRoutes(db: DrizzleDB) {
       const group = getGroup(db, id);
       if (!group) return c.json({ error: "Grupo no encontrado" }, 404);
 
-      const member = getMember(db, id, userId);
+      const member = requireMember(db, id, userId);
       if (!member) return c.json({ error: "No tienes acceso a este grupo" }, 403);
 
       const members = listGroupMembers(db, id);
@@ -134,7 +128,7 @@ export function createGroupRoutes(db: DrizzleDB) {
       const group = getGroup(db, id);
       if (!group) return c.json({ error: "Grupo no encontrado" }, 404);
 
-      const member = getMember(db, id, userId);
+      const member = requireMember(db, id, userId);
       if (!member || member.role !== "owner") {
         return c.json({ error: "Solo el propietario puede eliminar el grupo" }, 403);
       }
@@ -151,7 +145,7 @@ export function createGroupRoutes(db: DrizzleDB) {
       const group = getGroup(db, id);
       if (!group) return c.json({ error: "Grupo no encontrado" }, 404);
 
-      const member = getMember(db, id, userId);
+      const member = requireMember(db, id, userId);
       if (!member || (member.role !== "owner" && member.role !== "manager")) {
         return c.json({ error: "Solo propietarios y gestores pueden regenerar el enlace" }, 403);
       }
@@ -170,7 +164,7 @@ export function createGroupRoutes(db: DrizzleDB) {
       const group = getGroup(db, id);
       if (!group) return c.json({ error: "Grupo no encontrado" }, 404);
 
-      const requester = getMember(db, id, requesterId);
+      const requester = requireMember(db, id, requesterId);
       if (!requester || requester.role !== "owner") {
         return c.json({ error: "Solo el propietario puede cambiar roles" }, 403);
       }
@@ -190,7 +184,7 @@ export function createGroupRoutes(db: DrizzleDB) {
       const group = getGroup(db, id);
       if (!group) return c.json({ error: "Grupo no encontrado" }, 404);
 
-      const requester = getMember(db, id, requesterId);
+      const requester = requireMember(db, id, requesterId);
       if (!requester || (requester.role !== "owner" && requester.role !== "manager")) {
         return c.json({ error: "Sin permisos para eliminar miembros" }, 403);
       }
@@ -209,7 +203,7 @@ export function createGroupRoutes(db: DrizzleDB) {
       const group = getGroup(db, id);
       if (!group) return c.json({ error: "Grupo no encontrado" }, 404);
 
-      const member = getMember(db, id, userId);
+      const member = requireMember(db, id, userId);
       if (!member) return c.json({ error: "No tienes acceso a este grupo" }, 403);
 
       const rules = db.select().from(scoringRules).where(eq(scoringRules.groupId, id)).get();
@@ -231,7 +225,7 @@ export function createGroupRoutes(db: DrizzleDB) {
       const group = getGroup(db, id);
       if (!group) return c.json({ error: "Grupo no encontrado" }, 404);
 
-      const member = getMember(db, id, userId);
+      const member = requireMember(db, id, userId);
       if (!member || (member.role !== "owner" && member.role !== "manager")) {
         return c.json({ error: "Solo propietarios y gestores pueden actualizar las reglas" }, 403);
       }

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { matchesApi, type Match } from "../api/matches.js";
@@ -41,6 +41,23 @@ function localDateKey(iso: string) {
   return new Date(iso).toLocaleDateString("en-CA"); // YYYY-MM-DD in local time
 }
 
+function useCountdown(deadlineAt: string): string | null {
+  const [label, setLabel] = useState<string | null>(null);
+  useEffect(() => {
+    function tick() {
+      const diff = new Date(deadlineAt).getTime() - Date.now();
+      if (diff <= 0 || diff > 60 * 60 * 1000) { setLabel(null); return; }
+      const m = Math.floor(diff / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      setLabel(`Cierra en ${m}:${s.toString().padStart(2, "0")}`);
+    }
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [deadlineAt]);
+  return label;
+}
+
 // ── ScoreInput ────────────────────────────────────────────────────────────
 
 function ScoreInput({
@@ -60,6 +77,22 @@ function ScoreInput({
   const mutation = useMutation({
     mutationFn: () =>
       predictionsApi.upsert(groupId, match.id, Number(home), Number(away)),
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: ["predictions", groupId] });
+      const prev = qc.getQueryData<Prediction[]>(["predictions", groupId]);
+      qc.setQueryData<Prediction[]>(["predictions", groupId], (old = []) => {
+        const without = old.filter((p) => p.matchId !== match.id);
+        return [...without, {
+          id: "", userId: "", groupId, matchId: match.id,
+          homeGoals: Number(home), awayGoals: Number(away),
+          submittedAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+        }];
+      });
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) qc.setQueryData(["predictions", groupId], ctx.prev);
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["predictions", groupId] });
       setFlash(true);
@@ -115,7 +148,7 @@ function DevSetResult({ match }: { match: Match }) {
   const qc = useQueryClient();
   const [home, setHome] = useState("");
   const [away, setAway] = useState("");
-  const [open, setOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   const set = useMutation({
     mutationFn: async () => {
@@ -130,7 +163,7 @@ function DevSetResult({ match }: { match: Match }) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["matches"] });
       qc.invalidateQueries({ queryKey: ["results"] });
-      setOpen(false);
+      setExpanded(false);
     },
   });
 
@@ -147,11 +180,11 @@ function DevSetResult({ match }: { match: Match }) {
     },
   });
 
-  if (!open) {
+  if (!expanded) {
     return (
       <div className="flex gap-1 mt-2 justify-end">
         <button
-          onClick={() => setOpen(true)}
+          onClick={() => setExpanded(true)}
           className="text-xs text-orange-500 border border-orange-200 hover:bg-orange-50 px-2 py-1 rounded transition-colors"
         >
           [dev] fijar resultado
@@ -187,7 +220,7 @@ function DevSetResult({ match }: { match: Match }) {
       >
         {set.isPending ? "…" : "OK"}
       </button>
-      <button onClick={() => setOpen(false)} className="text-xs text-gray-400 hover:text-gray-600">
+      <button onClick={() => setExpanded(false)} className="text-xs text-gray-400 hover:text-gray-600">
         ✕
       </button>
     </div>
@@ -209,6 +242,7 @@ function MatchCard({
 }) {
   const open = isOpen(match);
   const finished = hasResult(match);
+  const countdown = useCountdown(match.deadlineAt);
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-4">
@@ -252,7 +286,14 @@ function MatchCard({
               )}
             </div>
           ) : open ? (
-            <ScoreInput groupId={groupId} match={match} saved={prediction} />
+            <div className="flex flex-col items-center gap-1">
+              <ScoreInput groupId={groupId} match={match} saved={prediction} />
+              {countdown && (
+                <span className="text-xs font-medium text-orange-500 bg-orange-50 px-2 py-0.5 rounded-full">
+                  {countdown}
+                </span>
+              )}
+            </div>
           ) : (
             <div className="flex items-center gap-2 text-gray-400">
               {prediction ? (
@@ -362,6 +403,17 @@ export default function MatchCenter() {
         {loadingMatches ? (
           <p className="text-gray-400 text-sm">Cargando partidos…</p>
         ) : (
+          byDay.size === 0 ? (
+            <div className="text-center py-16">
+              <p className="text-gray-400 text-sm">
+                {filterStage === "finished"
+                  ? "Aún no hay partidos finalizados."
+                  : filterStage === "open"
+                  ? "No hay partidos abiertos en este momento."
+                  : "No hay partidos disponibles."}
+              </p>
+            </div>
+          ) :
           Array.from(byDay.entries()).map(([day, dayMatches]) => (
             <div key={day} className="mb-8">
               <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3 capitalize">

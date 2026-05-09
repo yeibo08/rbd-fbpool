@@ -1,31 +1,42 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
-import { eq, and, isNotNull } from "drizzle-orm";
+import { eq, and, isNotNull, count } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import type { DrizzleDB } from "../db/types.js";
-import { predictions, matches, groupMembers, scoringRules } from "../db/schema.js";
+import { predictions, matches, scoringRules } from "../db/schema.js";
 import { requireAuth, type AuthEnv } from "../middleware/auth.js";
 import { computePoints } from "../services/scoring.js";
+import { requireMember } from "../db/helpers.js";
 
 const predictionSchema = z.object({
   homeGoals: z.number().int().min(0),
   awayGoals: z.number().int().min(0),
 });
 
-function requireMember(db: DrizzleDB, groupId: string, userId: string) {
-  return db
-    .select()
-    .from(groupMembers)
-    .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.userId, userId)))
-    .get();
-}
-
 export function createPredictionRoutes(db: DrizzleDB) {
   return new Hono<AuthEnv>()
     .use("*", requireAuth)
 
-    // Must be registered before /:groupId/predictions/:matchId to avoid "results" being captured as matchId
+    // Static sub-paths registered before /:groupId/predictions/:matchId to avoid capture
+    .get("/:groupId/predictions/progress", (c) => {
+      const userId = c.get("userId");
+      const { groupId } = c.req.param();
+
+      if (!requireMember(db, groupId, userId)) {
+        return c.json({ error: "No tienes acceso a este grupo" }, 403);
+      }
+
+      const total = db.select({ value: count() }).from(matches).get()?.value ?? 0;
+      const predicted = db
+        .select({ value: count() })
+        .from(predictions)
+        .where(and(eq(predictions.groupId, groupId), eq(predictions.userId, userId)))
+        .get()?.value ?? 0;
+
+      return c.json({ predicted, total });
+    })
+
     .get("/:groupId/predictions/results", (c) => {
       const userId = c.get("userId");
       const { groupId } = c.req.param();

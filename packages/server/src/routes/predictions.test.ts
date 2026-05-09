@@ -233,3 +233,46 @@ describe("GET /api/groups/:groupId/predictions/results", () => {
     expect(res.status).toBe(403);
   });
 });
+
+// ── GET /api/groups/:groupId/predictions/progress ─────────────────────────
+
+describe("GET /api/groups/:groupId/predictions/progress", () => {
+  it("returns 0 predicted when the user has no predictions", async () => {
+    const { app } = makeApp();
+    const user = await registerUser(app);
+    const { id: groupId } = await makeGroup(app, user);
+
+    const res = await authedRequest(app, `/api/groups/${groupId}/predictions/progress`, { session: user });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.predicted).toBe(0);
+    expect(body.total).toBeGreaterThan(0);
+  });
+
+  it("counts only predictions that belong to the user in this group", async () => {
+    const { app } = makeApp();
+    const user = await registerUser(app);
+    const { id: groupId } = await makeGroup(app, user);
+
+    await authedRequest(app, `/api/groups/${groupId}/predictions/mFuture`, {
+      session: user,
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ homeGoals: 1, awayGoals: 0 }),
+    });
+
+    const res = await authedRequest(app, `/api/groups/${groupId}/predictions/progress`, { session: user });
+    const body = await res.json();
+    expect(body.predicted).toBe(1);
+  });
+
+  it("returns 403 for a non-member", async () => {
+    const { app } = makeApp();
+    const owner = await registerUser(app, { email: "owner@test.com" });
+    const stranger = await registerUser(app, { email: "stranger@test.com" });
+    const { id: groupId } = await makeGroup(app, owner);
+
+    const res = await authedRequest(app, `/api/groups/${groupId}/predictions/progress`, { session: stranger });
+    expect(res.status).toBe(403);
+  });
+});

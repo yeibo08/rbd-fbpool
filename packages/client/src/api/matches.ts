@@ -17,11 +17,7 @@ export interface Match {
   resultFetchedAt: string | null;
 }
 
-async function apiFetch<T>(path: string): Promise<T> {
-  const res = await fetch(path, { credentials: "include" });
-  if (!res.ok) throw new Error(`Error ${res.status}`);
-  return res.json() as Promise<T>;
-}
+import { apiFetch } from "../lib/api.js";
 
 export const matchesApi = {
   list: () => apiFetch<Match[]>("/api/matches"),

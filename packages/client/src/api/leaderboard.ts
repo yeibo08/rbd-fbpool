@@ -6,10 +6,9 @@ export interface LeaderboardEntry {
   rank: number;
 }
 
+import { apiFetch } from "../lib/api.js";
+
 export const leaderboardApi = {
-  get: async (groupId: string): Promise<LeaderboardEntry[]> => {
-    const res = await fetch(`/api/groups/${groupId}/leaderboard`, { credentials: "include" });
-    if (!res.ok) throw new Error(`Error ${res.status}`);
-    return res.json();
-  },
+  get: (groupId: string): Promise<LeaderboardEntry[]> =>
+    apiFetch(`/api/groups/${groupId}/leaderboard`),
 };

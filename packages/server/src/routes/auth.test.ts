@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import { createTestDb } from "../test-utils/db.js";
 import { createApp } from "../app.js";
 
@@ -263,5 +263,40 @@ describe("POST /api/auth/change-password", () => {
       body: JSON.stringify({ currentPassword: VALID_USER.password, newPassword: "NewPass#2" }),
     });
     expect(res.status).toBe(401);
+  });
+
+  it("clears forcePasswordChange after changing from a temp password", async () => {
+    const { app } = makeApp();
+    await registerAndLogin(app);
+
+    // Get a temp password via forgot-password
+    const forgotRes = await app.request("/api/auth/forgot-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: VALID_USER.email }),
+    });
+    const { tempPassword } = await forgotRes.json();
+
+    // Login with temp password — forcePasswordChange should be true
+    const loginRes = await app.request("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: VALID_USER.email, password: tempPassword }),
+    });
+    expect((await loginRes.json()).forcePasswordChange).toBe(true);
+    const cookie = loginRes.headers.get("set-cookie")!.split(";")[0];
+
+    // Change password using the temp password as currentPassword
+    const changeRes = await app.request("/api/auth/change-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ currentPassword: tempPassword, newPassword: "NewPass#2" }),
+    });
+    expect(changeRes.status).toBe(200);
+
+    // /me should now show forcePasswordChange === false
+    const meRes = await app.request("/api/auth/me", { headers: { Cookie: cookie } });
+    const me = await meRes.json();
+    expect(me.forcePasswordChange).toBe(false);
   });
 });

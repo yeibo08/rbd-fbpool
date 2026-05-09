@@ -16,18 +16,7 @@ export interface PredictionResult {
   points: number;
 }
 
-async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(path, {
-    credentials: "include",
-    ...options,
-    headers: { "Content-Type": "application/json", ...(options?.headers ?? {}) },
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({})) as { error?: string };
-    throw new Error(body.error ?? `Error ${res.status}`);
-  }
-  return res.json() as Promise<T>;
-}
+import { apiFetch } from "../lib/api.js";
 
 export const predictionsApi = {
   list: (groupId: string) =>
@@ -41,4 +30,7 @@ export const predictionsApi = {
 
   results: (groupId: string) =>
     apiFetch<PredictionResult[]>(`/api/groups/${groupId}/predictions/results`),
+
+  progress: (groupId: string) =>
+    apiFetch<{ predicted: number; total: number }>(`/api/groups/${groupId}/predictions/progress`),
 };

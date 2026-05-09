@@ -1,9 +1,10 @@
 import { Hono } from "hono";
-import { eq, and, isNotNull } from "drizzle-orm";
+import { eq, isNotNull } from "drizzle-orm";
 import type { DrizzleDB } from "../db/types.js";
 import { groupMembers, matches, predictions, scoringRules, users } from "../db/schema.js";
 import { requireAuth, type AuthEnv } from "../middleware/auth.js";
 import { computePoints } from "../services/scoring.js";
+import { requireMember } from "../db/helpers.js";
 
 export function createLeaderboardRoutes(db: DrizzleDB) {
   return new Hono<AuthEnv>()
@@ -13,12 +14,9 @@ export function createLeaderboardRoutes(db: DrizzleDB) {
       const userId = c.get("userId");
       const { groupId } = c.req.param();
 
-      const member = db
-        .select()
-        .from(groupMembers)
-        .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.userId, userId)))
-        .get();
-      if (!member) return c.json({ error: "No tienes acceso a este grupo" }, 403);
+      if (!requireMember(db, groupId, userId)) {
+        return c.json({ error: "No tienes acceso a este grupo" }, 403);
+      }
 
       const rules = db.select().from(scoringRules).where(eq(scoringRules.groupId, groupId)).get();
       if (!rules) return c.json({ error: "Reglas no encontradas" }, 404);

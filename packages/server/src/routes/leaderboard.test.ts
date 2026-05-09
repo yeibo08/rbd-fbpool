@@ -119,6 +119,32 @@ describe("GET /api/groups/:groupId/leaderboard", () => {
     expect(body[0].points).toBe(8);
   });
 
+  it("respects custom scoring rules", async () => {
+    const { app, sqlite } = makeApp();
+    const userA = await registerUser(app, { email: "a@test.com", displayName: "Alice" });
+    const { id: groupId } = await makeGroup(app, userA);
+
+    // Set rules: 3 pts for correct result, 0 for everything else
+    await authedRequest(app, `/api/groups/${groupId}/rules`, {
+      session: userA,
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ptsCorrectResult: 3, ptsCorrectHome: 0, ptsCorrectAway: 0, ptsCorrectTotal: 0 }),
+    });
+
+    sqlite.exec(`UPDATE matches SET home_goals = 2, away_goals = 1 WHERE id = 'mPast'`);
+    // Alice predicts correct winner (home wins) but wrong goals → should get 3 pts only
+    sqlite.exec(`
+      INSERT INTO predictions (id, user_id, group_id, match_id, home_goals, away_goals) VALUES
+        ('pA', '${userA.userId}', '${groupId}', 'mPast', 3, 0);
+    `);
+
+    const res = await authedRequest(app, `/api/groups/${groupId}/leaderboard`, { session: userA });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body[0].points).toBe(3);
+  });
+
   it("returns 403 for a non-member", async () => {
     const { app } = makeApp();
     const owner = await registerUser(app, { email: "owner@test.com" });

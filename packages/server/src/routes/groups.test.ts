@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import { createTestDb } from "../test-utils/db.js";
 import { createApp } from "../app.js";
 import { registerUser, authedRequest } from "../test-utils/helpers.js";
@@ -131,6 +131,9 @@ describe("GET /api/groups/:id", () => {
     const body = await res.json();
     expect(body.id).toBe(id);
     expect(body.members).toHaveLength(1);
+    expect(body.members[0].userId).toBe(owner.userId);
+    expect(body.members[0].displayName).toBe("Test User");
+    expect(body.members[0].role).toBe("owner");
   });
 
   it("returns 403 for a non-member", async () => {
@@ -180,6 +183,42 @@ describe("DELETE /api/groups/:id", () => {
 
     const getRes = await authedRequest(app, `/api/groups/${id}`, { session: owner });
     expect(getRes.status).toBe(404);
+  });
+
+  it("cascades delete to group_members, scoring_rules, and predictions", async () => {
+    const { app, sqlite } = makeApp();
+    const owner = await registerUser(app, { email: "owner@test.com" });
+    const member = await registerUser(app, { email: "member@test.com" });
+
+    const createRes = await authedRequest(app, "/api/groups", {
+      session: owner,
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Cascade Group" }),
+    });
+    const { id: groupId, inviteToken } = await createRes.json();
+
+    // Member joins and submits a prediction
+    await authedRequest(app, `/api/groups/join/${inviteToken}`, { session: member, method: "POST" });
+    sqlite.exec(`INSERT INTO matches (id, match_number, stage, home_team_label, away_team_label, kickoff_at)
+      VALUES ('mFuture', 99, 'group', 'A', 'B', '${new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString()}')`);
+    await authedRequest(app, `/api/groups/${groupId}/predictions/mFuture`, {
+      session: member,
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ homeGoals: 1, awayGoals: 0 }),
+    });
+
+    // Delete the group
+    await authedRequest(app, `/api/groups/${groupId}`, { session: owner, method: "DELETE" });
+
+    // All related rows should be gone
+    const members = sqlite.prepare("SELECT * FROM group_members WHERE group_id = ?").all(groupId);
+    const rules = sqlite.prepare("SELECT * FROM scoring_rules WHERE group_id = ?").all(groupId);
+    const preds = sqlite.prepare("SELECT * FROM predictions WHERE group_id = ?").all(groupId);
+    expect(members).toHaveLength(0);
+    expect(rules).toHaveLength(0);
+    expect(preds).toHaveLength(0);
   });
 
   it("returns 403 for a non-owner member", async () => {
