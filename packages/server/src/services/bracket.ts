@@ -124,7 +124,7 @@ export function simulateR32Qualifiers(standings: GroupStandingsMap): BracketMap 
 
   for (const slot of R32_SLOTS) {
     const resolveSlot = (side: typeof slot.home | typeof slot.away): TeamRef | null => {
-      if ("group" in side && side.pos !== 3) {
+      if ("group" in side) {
         const group = standings[side.group];
         if (!group) return null;
         return toRef(group[side.pos - 1]);
