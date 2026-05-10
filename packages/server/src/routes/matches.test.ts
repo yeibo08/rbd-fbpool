@@ -72,3 +72,52 @@ describe("GET /api/matches/:id", () => {
     expect(res.status).toBe(404);
   });
 });
+
+describe("GET /api/matches — team flags and codes", () => {
+  function makeAppWithCountries() {
+    const { db, sqlite } = createTestDb();
+    sqlite.exec(`
+      INSERT INTO countries (code, name, short, flag_emoji, group_letter, flag_url)
+      VALUES
+        ('MX', 'México',    'MEX', '🇲🇽', 'A', 'https://flagcdn.com/w40/mx.png'),
+        ('AR', 'Argentina', 'ARG', '🇦🇷', 'A', 'https://flagcdn.com/w40/ar.png');
+    `);
+    sqlite.exec(`
+      INSERT INTO matches (id, match_number, stage, group_letter, home_team_code, away_team_code, home_team_label, away_team_label, kickoff_at)
+      VALUES ('mC', 3, 'group', 'A', 'MX', 'AR', 'México', 'Argentina', '${FUTURE}');
+    `);
+    return { app: createApp(db), sqlite };
+  }
+
+  it("includes homeTeamShort and homeTeamFlagUrl for matches with known team codes", async () => {
+    const { app } = makeAppWithCountries();
+    const user = await registerUser(app);
+    const body = await (await authedRequest(app, "/api/matches", { session: user })).json();
+    const match = body.find((m: { id: string }) => m.id === "mC");
+    expect(match.homeTeamShort).toBe("MEX");
+    expect(match.homeTeamFlagEmoji).toBe("🇲🇽");
+    expect(match.homeTeamFlagUrl).toBe("https://flagcdn.com/w40/mx.png");
+    expect(match.awayTeamShort).toBe("ARG");
+    expect(match.awayTeamFlagEmoji).toBe("🇦🇷");
+    expect(match.awayTeamFlagUrl).toBe("https://flagcdn.com/w40/ar.png");
+  });
+
+  it("returns null flag fields for TBD matches without a team code", async () => {
+    const { app } = makeApp();
+    const user = await registerUser(app);
+    const body = await (await authedRequest(app, "/api/matches", { session: user })).json();
+    const match = body[0];
+    expect(match.homeTeamShort).toBeNull();
+    expect(match.homeTeamFlagUrl).toBeNull();
+    expect(match.awayTeamShort).toBeNull();
+    expect(match.awayTeamFlagUrl).toBeNull();
+  });
+
+  it("GET /api/matches/:id also includes flag fields", async () => {
+    const { app } = makeAppWithCountries();
+    const user = await registerUser(app);
+    const body = await (await authedRequest(app, "/api/matches/mC", { session: user })).json();
+    expect(body.homeTeamShort).toBe("MEX");
+    expect(body.awayTeamShort).toBe("ARG");
+  });
+});

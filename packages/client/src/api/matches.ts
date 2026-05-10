@@ -15,6 +15,12 @@ export interface Match {
   wentToPenalties: number;
   penaltyWinnerCode: string | null;
   resultFetchedAt: string | null;
+  homeTeamShort: string | null;
+  homeTeamFlagEmoji: string | null;
+  homeTeamFlagUrl: string | null;
+  awayTeamShort: string | null;
+  awayTeamFlagEmoji: string | null;
+  awayTeamFlagUrl: string | null;
 }
 
 import { apiFetch } from "../lib/api.js";

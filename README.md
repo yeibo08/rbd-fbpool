@@ -61,8 +61,8 @@ All variables live in `packages/server/.env`:
 ```
 packages/
 ├── server/src/
-│   ├── routes/          # Hono route handlers (auth, groups, matches, predictions, leaderboard, admin)
-│   ├── services/        # scoring.ts, results-sync.ts, espn-provider.ts
+│   ├── routes/          # Hono route handlers (auth, groups, matches, predictions, leaderboard, standings, bracket, admin)
+│   ├── services/        # scoring.ts, standings.ts, bracket.ts, results-sync.ts, espn-provider.ts
 │   ├── db/              # Drizzle schema, migrations, seed, helpers
 │   ├── middleware/       # JWT auth middleware
 │   ├── lib/             # password hashing, token signing
@@ -72,7 +72,7 @@ packages/
     ├── api/             # TanStack Query fetch wrappers (uses shared lib/api.ts)
     ├── components/
     │   └── layout/      # AppNav — shared nav bar with hamburger drawer
-    ├── pages/           # Login, Register, Grupos, GroupDetail, MatchCenter, Leaderboard, JoinGroup, Faq
+    ├── pages/           # Login, Register, Grupos, GroupDetail, MatchCenter, Leaderboard, JoinGroup, Faq, Standings, Bracket
     ├── store/           # Zustand auth store
     └── lib/             # apiFetch, utils
 ```
@@ -129,13 +129,16 @@ All routes require authentication (JWT cookie) except `/api/auth/register` and `
 | `DELETE` | `/api/groups/:id/members/:userId` | Remove member |
 | `GET` | `/api/groups/:id/rules` | Get scoring rules |
 | `PUT` | `/api/groups/:id/rules` | Update scoring rules |
-| `GET` | `/api/matches` | All 104 matches (with `deadlineAt`) |
-| `GET` | `/api/matches/:id` | Single match |
+| `GET` | `/api/matches` | All 104 matches (with `deadlineAt`, flag URLs, 3-letter codes) |
+| `GET` | `/api/matches/:id` | Single match (same enriched fields) |
+| `GET` | `/api/standings` | Official group stage standings — all 12 groups (public) |
 | `GET` | `/api/groups/:id/predictions` | User's predictions |
 | `PUT` | `/api/groups/:id/predictions/:matchId` | Save/update prediction |
 | `GET` | `/api/groups/:id/predictions/results` | Completed matches + earned points |
 | `GET` | `/api/groups/:id/predictions/progress` | `{ predicted, total }` count |
 | `GET` | `/api/groups/:id/leaderboard` | Ranked members by points |
+| `GET` | `/api/groups/:id/standings` | Simulated standings from user's group-stage predictions |
+| `GET` | `/api/groups/:id/bracket` | Full knockout bracket with simulated qualifiers + predictions |
 
 **Dev-only** (not mounted in `NODE_ENV=production`):
 

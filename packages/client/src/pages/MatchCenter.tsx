@@ -255,9 +255,21 @@ function MatchCard({
       </div>
 
       <div className="flex items-center justify-between gap-4">
-        {/* Teams */}
+        {/* Home team */}
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-gray-900 truncate">{match.homeTeamLabel}</p>
+          {match.homeTeamShort ? (
+            <>
+              <div className="flex items-center gap-1 mb-0.5">
+                {match.homeTeamFlagUrl && (
+                  <img src={match.homeTeamFlagUrl} alt={match.homeTeamShort} className="w-6 h-4 object-cover rounded-sm flex-shrink-0" />
+                )}
+                <span className="text-sm font-bold text-gray-900">{match.homeTeamShort}</span>
+              </div>
+              <p className="text-xs text-gray-500 truncate">{match.homeTeamLabel}</p>
+            </>
+          ) : (
+            <p className="text-sm font-medium text-gray-500">{match.homeTeamLabel}</p>
+          )}
         </div>
 
         {/* Center: result / input / locked */}
@@ -309,8 +321,21 @@ function MatchCard({
           )}
         </div>
 
+        {/* Away team */}
         <div className="flex-1 min-w-0 text-right">
-          <p className="text-sm font-medium text-gray-900 truncate">{match.awayTeamLabel}</p>
+          {match.awayTeamShort ? (
+            <>
+              <div className="flex items-center justify-end gap-1 mb-0.5">
+                <span className="text-sm font-bold text-gray-900">{match.awayTeamShort}</span>
+                {match.awayTeamFlagUrl && (
+                  <img src={match.awayTeamFlagUrl} alt={match.awayTeamShort} className="w-6 h-4 object-cover rounded-sm flex-shrink-0" />
+                )}
+              </div>
+              <p className="text-xs text-gray-500 truncate">{match.awayTeamLabel}</p>
+            </>
+          ) : (
+            <p className="text-sm font-medium text-gray-500 text-right">{match.awayTeamLabel}</p>
+          )}
         </div>
       </div>
 

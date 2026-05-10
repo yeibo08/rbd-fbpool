@@ -35,6 +35,8 @@ A football pool is a competitive framework where users predict match outcomes to
 
 **Prediction progress** A per-group count of how many matches a user has predicted out of the total. Shown on the groups list as "X / 104 pronosticados".
 
+**Team display** Every team is shown with its flag image (SVG from `flagUrl`), 3-letter code (e.g., MEX, CAN, ENG), and full Spanish name. TBD knockout slots show "Por definir" with no flag. The matches API enriches every match response with `homeTeamShort`, `homeTeamFlagEmoji`, `homeTeamFlagUrl`, and the equivalent `away*` fields via a LEFT JOIN to the `countries` table.
+
 ---
 
 ## Winner
@@ -152,6 +154,45 @@ Points are computed using `computePoints(prediction, result, rules)`:
 ### Prediction progress
 
 The groups list page shows a per-group progress counter below each group name: "X / 104 pronosticados". This reflects how many of the 104 matches the current user has submitted a prediction for in that group.
+
+---
+
+### Group Stage Standings
+
+A standings page at `/tabla-de-grupos` (public, no login required) shows the current official standings for all 12 World Cup groups based on real match results stored in the database. A second view at `/grupos/:id/tabla-de-grupos` (auth + member) shows simulated standings using the current user's predictions for that pool group, falling back to official results where available.
+
+Each group is displayed as a table with the following columns:
+
+| Column | Description |
+|---|---|
+| Pos | Position within the group (1–4) |
+| Bandera | Team flag image |
+| Equipo | Team name and 3-letter code |
+| PJ | Matches played |
+| G | Wins |
+| E | Draws |
+| P | Losses |
+| GF | Goals scored |
+| GC | Goals conceded |
+| DG | Goal difference |
+| Pts | Points (W=3, D=1, L=0) |
+
+Teams are sorted by: points → goal difference → goals scored → team code (alphabetical). The top 2 rows are highlighted as direct qualifiers; the 3rd row is marked as a potential third-place qualifier.
+
+---
+
+### Bracket Predictor
+
+A visual knockout bracket at `/grupos/:id/bracket` (auth + member) shows all 32 knockout matches across 5 rounds: Round of 32 (16 matches), Round of 16 (8), Quarterfinals (4), Semifinals (2), and Final (1), with the third-place play-off shown alongside the semifinals.
+
+**Auto-fill from predictions** — as the user enters group-stage predictions, the bracket updates automatically:
+
+1. Group stage predictions (or official results where available) are used to compute simulated standings for all 12 groups.
+2. The top 2 teams from each group advance directly; the 8 best third-place teams are selected by ranking all 12 third-place finishers by points → goal difference → goals scored → team code.
+3. All 32 qualifiers are mapped to the official FIFA 2026 R32 slots following the published FIFA 2026 tournament bracket structure.
+4. As the user predicts each knockout match, the predicted winner propagates to the next round's slot.
+
+Official results always take precedence over predictions. Each bracket match card shows: flag + 3-letter code for each team, the score (official, or predicted with asterisk, or dash if undetermined), and a points badge for completed matches. Tapping a card navigates to that match in the Match Center.
 
 ---
 

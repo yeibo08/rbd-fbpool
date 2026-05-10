@@ -175,6 +175,13 @@ export default function AppNav({ breadcrumbs, right }: AppNavProps) {
             Mis grupos
           </Link>
           <Link
+            to="/tabla-de-grupos"
+            onClick={() => setDrawerOpen(false)}
+            className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+          >
+            Tabla de grupos
+          </Link>
+          <Link
             to="/faq"
             onClick={() => setDrawerOpen(false)}
             className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors"

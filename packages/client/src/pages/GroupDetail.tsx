@@ -291,7 +291,7 @@ export default function GroupDetail() {
         )}
 
         {/* Actions */}
-        <div className="flex gap-3">
+        <div className="flex gap-3 flex-wrap">
           <Link
             to={`/grupos/${id}/partidos`}
             className="flex-1 text-center bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2.5 rounded-lg transition-colors"
@@ -304,15 +304,29 @@ export default function GroupDetail() {
           >
             Tabla
           </Link>
-          {isOwner && (
-            <button
-              onClick={() => { if (confirm("¿Eliminar este grupo? Esta acción no se puede deshacer.")) deleteGroup.mutate(); }}
-              className="text-sm text-red-500 hover:text-red-700 border border-red-200 hover:border-red-400 px-4 py-2.5 rounded-lg transition-colors"
-            >
-              Eliminar grupo
-            </button>
-          )}
         </div>
+        <div className="flex gap-3 flex-wrap">
+          <Link
+            to={`/grupos/${id}/tabla-de-grupos`}
+            className="flex-1 text-center border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium py-2.5 rounded-lg transition-colors"
+          >
+            Tabla de grupos
+          </Link>
+          <Link
+            to={`/grupos/${id}/bracket`}
+            className="flex-1 text-center border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium py-2.5 rounded-lg transition-colors"
+          >
+            Bracket
+          </Link>
+        </div>
+        {isOwner && (
+          <button
+            onClick={() => { if (confirm("¿Eliminar este grupo? Esta acción no se puede deshacer.")) deleteGroup.mutate(); }}
+            className="w-full text-sm text-red-500 hover:text-red-700 border border-red-200 hover:border-red-400 px-4 py-2.5 rounded-lg transition-colors"
+          >
+            Eliminar grupo
+          </button>
+        )}
       </main>
     </div>
   );

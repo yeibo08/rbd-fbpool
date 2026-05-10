@@ -10,6 +10,8 @@ import GroupDetail from "./pages/GroupDetail.js";
 import JoinGroup from "./pages/JoinGroup.js";
 import MatchCenter from "./pages/MatchCenter.js";
 import Leaderboard from "./pages/Leaderboard.js";
+import Standings from "./pages/Standings.js";
+import Bracket from "./pages/Bracket.js";
 import Faq from "./pages/Faq.js";
 
 function AuthInit({ children }: { children: React.ReactNode }) {
@@ -82,6 +84,9 @@ export default function App() {
           <Route path="/grupos/:id" element={<RequireAuth><GroupDetail /></RequireAuth>} />
           <Route path="/grupos/:id/partidos" element={<RequireAuth><MatchCenter /></RequireAuth>} />
           <Route path="/grupos/:id/tabla" element={<RequireAuth><Leaderboard /></RequireAuth>} />
+          <Route path="/grupos/:id/tabla-de-grupos" element={<RequireAuth><Standings defaultTab="predicted" /></RequireAuth>} />
+          <Route path="/grupos/:id/bracket" element={<RequireAuth><Bracket /></RequireAuth>} />
+          <Route path="/tabla-de-grupos" element={<Standings />} />
           <Route path="/faq" element={<Faq />} />
           <Route path="/unirse/:token" element={<JoinGroup />} />
 
