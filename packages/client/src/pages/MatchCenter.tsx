@@ -61,15 +61,7 @@ function useCountdown(deadlineAt: string): string | null {
 
 // ── ScoreInput ────────────────────────────────────────────────────────────
 
-function ScoreInput({
-  groupId,
-  match,
-  saved,
-}: {
-  groupId: string;
-  match: Match;
-  saved: Prediction | undefined;
-}) {
+function useScoreInput(groupId: string, match: Match, saved: Prediction | undefined) {
   const qc = useQueryClient();
   const [home, setHome] = useState<string>(saved?.homeGoals?.toString() ?? "");
   const [away, setAway] = useState<string>(saved?.awayGoals?.toString() ?? "");
@@ -106,39 +98,28 @@ function ScoreInput({
     away !== "" &&
     (Number(home) !== saved?.homeGoals || Number(away) !== saved?.awayGoals);
 
+  return { home, setHome, away, setAway, flash, dirty, mutation };
+}
+
+function ScoreInputs({
+  home, setHome, away, setAway,
+}: {
+  home: string; setHome: (v: string) => void;
+  away: string; setAway: (v: string) => void;
+}) {
   return (
     <div className="flex items-center gap-2">
       <input
-        type="number"
-        min={0}
-        max={99}
-        value={home}
+        type="number" min={0} max={99} value={home}
         onChange={(e) => setHome(e.target.value)}
         className="w-12 text-center border border-gray-300 rounded-lg py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
       <span className="text-gray-400 text-sm font-bold">—</span>
       <input
-        type="number"
-        min={0}
-        max={99}
-        value={away}
+        type="number" min={0} max={99} value={away}
         onChange={(e) => setAway(e.target.value)}
         className="w-12 text-center border border-gray-300 rounded-lg py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
-      {flash ? (
-        <span className="text-green-600 text-xs font-medium">✓ Guardado</span>
-      ) : (
-        <button
-          onClick={() => mutation.mutate()}
-          disabled={!dirty || mutation.isPending || home === "" || away === ""}
-          className="text-xs bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white font-medium px-3 py-1.5 rounded-lg transition-colors"
-        >
-          {mutation.isPending ? "…" : "Guardar"}
-        </button>
-      )}
-      {mutation.error && (
-        <span className="text-red-500 text-xs">{(mutation.error as Error).message}</span>
-      )}
     </div>
   );
 }
@@ -244,6 +225,7 @@ function MatchCard({
   const open = isOpen(match);
   const finished = hasResult(match);
   const countdown = useCountdown(match.deadlineAt);
+  const score = useScoreInput(groupId, match, prediction);
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-4">
@@ -272,7 +254,7 @@ function MatchCard({
           )}
         </div>
 
-        {/* Center: result / input / locked */}
+        {/* Center: result / inputs / locked */}
         <div className="flex-shrink-0">
           {finished ? (
             <div className="flex flex-col items-center gap-1">
@@ -300,7 +282,7 @@ function MatchCard({
             </div>
           ) : open ? (
             <div className="flex flex-col items-center gap-1">
-              <ScoreInput groupId={groupId} match={match} saved={prediction} />
+              <ScoreInputs home={score.home} setHome={score.setHome} away={score.away} setAway={score.setAway} />
               {countdown && (
                 <span className="text-xs font-medium text-orange-500 bg-orange-50 px-2 py-0.5 rounded-full">
                   {countdown}
@@ -338,6 +320,26 @@ function MatchCard({
           )}
         </div>
       </div>
+
+      {/* Save button row — only when match is open */}
+      {open && !finished && (
+        <div className="flex items-center justify-end gap-2 mt-3">
+          {score.mutation.error && (
+            <span className="text-red-500 text-xs">{(score.mutation.error as Error).message}</span>
+          )}
+          {score.flash ? (
+            <span className="text-green-600 text-xs font-medium">✓ Guardado</span>
+          ) : (
+            <button
+              onClick={() => score.mutation.mutate()}
+              disabled={!score.dirty || score.mutation.isPending}
+              className="text-xs bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white font-medium px-3 py-1.5 rounded-lg transition-colors"
+            >
+              {score.mutation.isPending ? "…" : "Guardar"}
+            </button>
+          )}
+        </div>
+      )}
 
       {IS_DEV && <DevSetResult match={match} />}
     </div>
@@ -403,6 +405,7 @@ export default function MatchCenter() {
           { label: "Partidos" },
         ]}
         right={<Link to={`/grupos/${groupId}/tabla`} className="text-sm text-blue-600 hover:underline">Tabla →</Link>}
+        groupId={groupId}
       />
 
       <div className="max-w-2xl mx-auto px-4 py-4">

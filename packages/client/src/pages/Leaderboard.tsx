@@ -22,7 +22,7 @@ export default function Leaderboard() {
       <AppNav breadcrumbs={[
         { label: "Grupo", href: `/grupos/${groupId}` },
         { label: "Tabla de posiciones" },
-      ]} />
+      ]} groupId={groupId} />
 
       <main className="max-w-2xl mx-auto px-4 py-8">
         {isLoading ? (

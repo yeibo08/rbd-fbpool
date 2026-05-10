@@ -147,7 +147,7 @@ export default function Bracket() {
       <AppNav breadcrumbs={[
         { label: "Grupos", href: "/grupos" },
         { label: "Bracket" },
-      ]} />
+      ]} groupId={groupId} />
 
       <main className="py-6 px-4">
         <h1 className="text-lg font-bold text-gray-900 mb-4">Bracket</h1>

@@ -13,6 +13,7 @@ export interface Breadcrumb {
 interface AppNavProps {
   breadcrumbs?: Breadcrumb[];
   right?: React.JSX.Element;
+  groupId?: string;
 }
 
 function DisplayNameEditor({ onClose }: { onClose: () => void }) {
@@ -66,7 +67,7 @@ function DisplayNameEditor({ onClose }: { onClose: () => void }) {
   );
 }
 
-export default function AppNav({ breadcrumbs, right }: AppNavProps) {
+export default function AppNav({ breadcrumbs, right, groupId }: AppNavProps) {
   const { user, setUser } = useAuthStore();
   const navigate = useNavigate();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -175,12 +176,21 @@ export default function AppNav({ breadcrumbs, right }: AppNavProps) {
             Mis grupos
           </Link>
           <Link
-            to="/tabla-de-grupos"
+            to={groupId ? `/grupos/${groupId}/tabla-de-grupos` : "/tabla-de-grupos"}
             onClick={() => setDrawerOpen(false)}
             className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors"
           >
             Tabla de grupos
           </Link>
+          {groupId && (
+            <Link
+              to={`/grupos/${groupId}/bracket`}
+              onClick={() => setDrawerOpen(false)}
+              className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+            >
+              Bracket
+            </Link>
+          )}
           <Link
             to="/faq"
             onClick={() => setDrawerOpen(false)}
