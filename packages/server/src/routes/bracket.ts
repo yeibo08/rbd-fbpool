@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import type { DrizzleDB } from "../db/types.js";
 import { countries, matches, predictions, scoringRules } from "../db/schema.js";
 import { requireAuth, type AuthEnv } from "../middleware/auth.js";
@@ -39,7 +39,7 @@ export function createBracketRoutes(db: DrizzleDB) {
       const knockoutMatches = allMatches.filter((m) => (KNOCKOUT_STAGES as readonly string[]).includes(m.stage));
 
       // User predictions for this pool group
-      const userPreds = db.select().from(predictions).where(eq(predictions.groupId, groupId)).all();
+      const userPreds = db.select().from(predictions).where(and(eq(predictions.groupId, groupId), eq(predictions.userId, userId))).all();
       const predByMatch = new Map(userPreds.map((p) => [p.matchId, p]));
 
       // Build merged group-stage results (official wins over prediction)

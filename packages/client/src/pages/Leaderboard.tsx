@@ -21,7 +21,7 @@ export default function Leaderboard() {
     <div className="min-h-screen bg-gray-50">
       <AppNav breadcrumbs={[
         { label: "Grupo", href: `/grupos/${groupId}` },
-        { label: "Tabla de posiciones" },
+        { label: "Ranking de mis amigos" },
       ]} groupId={groupId} />
 
       <main className="max-w-2xl mx-auto px-4 py-8">

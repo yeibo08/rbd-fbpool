@@ -30,6 +30,22 @@ const FAQ_ITEMS = [
     q: "¿Cuántos grupos puedo tener?",
     a: "Puedes crear o unirte a tantos grupos como quieras. Cada grupo tiene su propio marcador, reglas de puntuación y pronósticos independientes.",
   },
+  {
+    q: "¿Qué es la Tabla de grupos?",
+    a: "La Tabla de grupos muestra las posiciones de los 48 equipos en sus 12 grupos (A–L) con estadísticas completas: partidos jugados, victorias, empates, derrotas, goles a favor, goles en contra, diferencia de goles y puntos. Las filas verdes indican clasificación directa a la Ronda de 32; la fila amarilla marca al posible tercer lugar. Tiene dos vistas: 'Oficial' con los resultados reales del torneo, y 'Mis pronósticos' con la tabla simulada a partir de tus predicciones.",
+  },
+  {
+    q: "¿Cómo funciona el Bracket?",
+    a: "El Bracket muestra el cuadro completo de eliminación directa: Ronda de 32 (16 partidos), Octavos, Cuartos, Semis, 3er lugar y Final. Se llena automáticamente a medida que haces pronósticos en la fase de grupos: el sistema simula las posiciones, determina los 32 clasificados (los 2 mejores de cada grupo más los 8 mejores terceros según el reglamento FIFA 2026) y los coloca en los cruces oficiales. A medida que pronostiques los partidos de eliminación, los equipos ganadores avanzan automáticamente en el cuadro.",
+  },
+  {
+    q: "¿Los resultados del bracket reflejan mis pronósticos o los resultados reales?",
+    a: "Siempre prevalecen los resultados oficiales cuando el partido ya se jugó. Para partidos aún sin resultado, el bracket usa tu pronóstico para avanzar equipos. Si no pronosticaste un partido, esa casilla queda como 'Por definir'. Los marcadores con asterisco (*) en el bracket son pronósticos pendientes de confirmación oficial.",
+  },
+  {
+    q: "¿Qué es el Ranking de mis amigos?",
+    a: "Es la tabla de posiciones de tu grupo: muestra a todos los participantes ordenados por puntos acumulados en los partidos ya jugados. Se actualiza automáticamente conforme avanza el torneo.",
+  },
 ];
 
 function FaqItem({ q, a }: { q: string; a: string }) {

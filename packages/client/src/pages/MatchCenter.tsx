@@ -404,7 +404,7 @@ export default function MatchCenter() {
           { label: "Grupo", href: `/grupos/${groupId}` },
           { label: "Partidos" },
         ]}
-        right={<Link to={`/grupos/${groupId}/tabla`} className="text-sm text-blue-600 hover:underline">Tabla →</Link>}
+        right={<Link to={`/grupos/${groupId}/tabla`} className="text-sm text-blue-600 hover:underline">Ranking →</Link>}
         groupId={groupId}
       />
 

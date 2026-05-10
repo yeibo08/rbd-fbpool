@@ -162,6 +162,50 @@ describe("GET /api/groups/:id/standings", () => {
     expect(mx.position).toBe(1);
   });
 
+  it("each user sees only their own predictions (no cross-user bleed)", async () => {
+    const { app } = makeApp();
+    const owner = await registerUser(app);
+    const groupRes = await authedRequest(app, "/api/groups", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Mi Grupo" }),
+      session: owner,
+    });
+    const group = await groupRes.json();
+
+    // Second member joins
+    const member = await registerUser(app, { email: "member@example.com" });
+    const { inviteToken } = (await (await authedRequest(app, `/api/groups/${group.id}`, { session: owner })).json());
+    await authedRequest(app, `/api/groups/join/${inviteToken}`, { method: "POST", session: member });
+
+    // Owner predicts MX 3-0
+    await authedRequest(app, `/api/groups/${group.id}/predictions/mA1`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ homeGoals: 3, awayGoals: 0 }),
+      session: owner,
+    });
+    // Member predicts AR 0-5 (AR is the away team)
+    await authedRequest(app, `/api/groups/${group.id}/predictions/mA1`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ homeGoals: 0, awayGoals: 5 }),
+      session: member,
+    });
+
+    // Owner's view: MX wins 3-0
+    const ownerRes = await authedRequest(app, `/api/groups/${group.id}/standings`, { session: owner });
+    const ownerBody = await ownerRes.json();
+    const mxOwner = ownerBody.groups["A"].find((t: { teamCode: string }) => t.teamCode === "MX");
+    expect(mxOwner.points).toBe(3);
+
+    // Member's view: AR wins 0-5
+    const memberRes = await authedRequest(app, `/api/groups/${group.id}/standings`, { session: member });
+    const memberBody = await memberRes.json();
+    const mxMember = memberBody.groups["A"].find((t: { teamCode: string }) => t.teamCode === "MX");
+    expect(mxMember.points).toBe(0);
+  });
+
   it("official result takes precedence over prediction", async () => {
     const { app, sqlite } = makeApp();
     // Set official result: AR wins 2-0 (AR is the away team in mA1)

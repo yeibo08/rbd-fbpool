@@ -95,7 +95,7 @@ export default function GroupDetail() {
       <AppNav breadcrumbs={[
         { label: "Grupos", href: "/grupos" },
         { label: group.name },
-      ]} />
+      ]} groupId={id} />
 
       <main className="max-w-2xl mx-auto px-4 py-8 space-y-6">
 
@@ -302,7 +302,7 @@ export default function GroupDetail() {
             to={`/grupos/${id}/tabla`}
             className="flex-1 text-center border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium py-2.5 rounded-lg transition-colors"
           >
-            Tabla
+            Ranking de mis amigos
           </Link>
         </div>
         <div className="flex gap-3 flex-wrap">

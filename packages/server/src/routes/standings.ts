@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { eq, isNotNull } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import type { DrizzleDB } from "../db/types.js";
 import { countries, matches, predictions } from "../db/schema.js";
 import { requireAuth, type AuthEnv } from "../middleware/auth.js";
@@ -75,7 +75,7 @@ export function createGroupStandingsRoutes(db: DrizzleDB) {
           awayGoals: predictions.awayGoals,
         })
         .from(predictions)
-        .where(eq(predictions.groupId, groupId))
+        .where(and(eq(predictions.groupId, groupId), eq(predictions.userId, userId)))
         .all();
 
       const predByMatch = new Map(userPredictions.map((p) => [p.matchId, p]));
